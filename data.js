@@ -10,7 +10,15 @@ window.PROBLEM_LIST = [
             <pre style="background: #2b2b2b; padding: 10px; border-radius: 4px;"><code>输入：nums = [2,7,11,15], target = 9\n输出：[0,1]</code></pre>
         `,
         initialCode: `class Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        pass`,
-        expectedCode: `class Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        hash_map = {}\n        for i, num in enumerate(nums):\n            complement = target - num\n            if complement in hash_map:\n                return [hash_map[complement], i]\n            hash_map[num] = i\n        return []`
+        expectedCode: `class Solution:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
+        hash_map = {}
+        for i, num in enumerate(nums):
+            complement = target - num
+            if complement in hash_map:
+                return [hash_map[complement], i]
+            hash_map[num] = i
+        return []`
     },
     {
         id: "palindrome-number",
