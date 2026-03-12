@@ -102,6 +102,7 @@ function formatCodeForJson(code) {
             const expected = formatCodeForJson(config.expectedCode);
            // 改为单词级匹配
     const diff = Diff.diffWords(expected, userCode);
+            console.log(diff);
 
     let diffHTML = '';
     let matchTokenCount = 0;
