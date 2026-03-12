@@ -47,7 +47,7 @@
 
     <script src="data.js"></script>
     <script src="tools.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
     
     <script>
@@ -100,8 +100,8 @@ function formatCodeForJson(code) {
         function submitCode() {
             const userCode = window.editor.getValue();
             const expected = formatCodeForJson(config.expectedCode);
-           // 改为单词级匹配，保留空格以维持严格格式对齐
-    const diff = Diff.diffWordsWithSpace(expected, userCode);
+           // 改为单词级匹配
+    const diff = Diff.diffWords(expected, userCode);
 
     let diffHTML = '';
     let matchTokenCount = 0;
@@ -123,9 +123,11 @@ function formatCodeForJson(code) {
     // 正确率计算改为单词/Token级
     const accuracy = ((matchTokenCount / expectedTokenCount) * 100).toFixed(2);
 
+            window.OJTools.addRecord(problemId, accuracy);
+
             document.getElementById('problem-content').innerHTML = `
                 <div class="metric">
-                    严格匹配正确率: <strong style="color: ${accuracy >= 100 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
+                    正确率: <strong style="color: ${accuracy >= 100 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
                 </div>
                 <div style="margin-bottom: 10px; font-size: 13px; color: #858585;">
                     <span style="display:inline-block; width:12px; height:12px; background:rgba(241,76,76,0.4); margin-right:5px; vertical-align:middle;"></span>冗余字符/格式
