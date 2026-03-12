@@ -22,6 +22,12 @@
         .diff-removed { background-color: rgba(35, 209, 96, 0.4); }
         .diff-match { color: #cccccc; }
         .metric { font-size: 18px; margin-bottom: 16px; padding: 10px; background: #2b2b2b; border-left: 4px solid var(--btn-bg); border-radius: 4px; }
+        .score-edit-row { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .score-input { width: 110px; background: #101010; color: #d4d4d4; border: 1px solid #333; border-radius: 6px; padding: 6px 8px; }
+        .quick-btn { min-width: 34px; padding: 6px 10px; }
+        .quick-green { background: #2da44e; }
+        .quick-red { background: #f14c4c; }
+        .quick-red:hover { background: #d32f2f; }
         @media (max-width: 768px) { body { padding: 0; } .app-container { flex-direction: column; border-radius: 0; border: none; } .panel { width: 100%; height: 50%; border-right: none; } .panel-left { border-bottom: 1px solid var(--border-color); } }
     </style>
 </head>
@@ -60,6 +66,7 @@
         }
 
         let originalProblemHTML = '';
+    let latestRecordIndex = -1;
 
         function initPage() {
             document.getElementById('problem-title').innerText = config.title;
@@ -83,23 +90,9 @@
             });
         });
 
-        /**
- * 将格式化代码转换为适用于 JSON Value 的字符串
- * @param {string} code - 原始格式化代码
- * @returns {string} - 经过转义处理的字符串
- */
-function formatCodeForJson(code) {
-    // 使用 JSON.stringify 处理转义逻辑
-    // 该方法会自动将换行符转为 \n，并处理引号等特殊字符
-    const jsonEscaped = JSON.stringify(code);
-    
-    // 如果只需要获取 JSON 内部的值（去掉首尾的双引号），可以进行切片
-    return jsonEscaped.substring(1, jsonEscaped.length - 1);
-}
-
         function submitCode() {
             const userCode = window.editor.getValue();
-            const expected = formatCodeForJson(config.expectedCode);
+            const expected = config.expectedCode;
            // 改为单词级匹配
     const diff = Diff.diffWords(expected, userCode);
             console.log(diff);
@@ -121,14 +114,23 @@ function formatCodeForJson(code) {
         }
     });
 
-    // 正确率计算改为单词/Token级
-    const accuracy = ((matchTokenCount / expectedTokenCount) * 100).toFixed(2);
+    // 正确率计算改为单词/Token级，并统一向下取整
+    const rawAccuracy = expectedTokenCount === 0 ? 0 : (matchTokenCount / expectedTokenCount) * 100;
+    const accuracy = window.OJTools.normalizeAccuracy(rawAccuracy);
+    const accuracyColor = window.OJTools.getAccuracyColor(accuracy);
 
-            window.OJTools.addRecord(problemId, accuracy);
+            latestRecordIndex = window.OJTools.addRecord(problemId, accuracy);
 
             document.getElementById('problem-content').innerHTML = `
                 <div class="metric">
-                    正确率: <strong style="color: ${accuracy >= 100 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
+                    正确率: <strong id="latest-score-label" style="color: ${accuracyColor};">${accuracy}%</strong>
+                </div>
+                <div class="score-edit-row">
+                    <span style="font-size: 13px; color: #858585;">修改本次成绩：</span>
+                    <input class="score-input" id="latest-score-input" type="number" min="0" max="100" value="${accuracy}">
+                    <button class="quick-btn quick-green" title="一键改为100%" onclick="setLatestScore(100)">✔</button>
+                    <button class="quick-btn quick-red" title="一键改为0%" onclick="setLatestScore(0)">✘</button>
+                    <button style="background:#0e639c;" onclick="updateLatestScoreByInput()">保存本次成绩</button>
                 </div>
                 <div style="margin-bottom: 10px; font-size: 13px; color: #858585;">
                     <span style="display:inline-block; width:12px; height:12px; background:rgba(241,76,76,0.4); margin-right:5px; vertical-align:middle;"></span>冗余字符/格式
@@ -140,6 +142,48 @@ function formatCodeForJson(code) {
                     <button style="background: #333;" onclick="location.href='index.html'">返回题库</button>
                 </div>
             `;
+        }
+
+        function updateLatestScoreByInput() {
+            if (latestRecordIndex < 0) {
+                return;
+            }
+            const input = document.getElementById('latest-score-input');
+            const value = input ? input.value : 0;
+            const normalized = window.OJTools.normalizeAccuracy(value);
+            const ok = window.OJTools.updateRecord(problemId, latestRecordIndex, normalized);
+            if (!ok) {
+                return;
+            }
+            if (input) {
+                input.value = String(normalized);
+            }
+            renderLatestScore(normalized);
+        }
+
+        function setLatestScore(value) {
+            if (latestRecordIndex < 0) {
+                return;
+            }
+            const normalized = window.OJTools.normalizeAccuracy(value);
+            const ok = window.OJTools.updateRecord(problemId, latestRecordIndex, normalized);
+            if (!ok) {
+                return;
+            }
+            const input = document.getElementById('latest-score-input');
+            if (input) {
+                input.value = String(normalized);
+            }
+            renderLatestScore(normalized);
+        }
+
+        function renderLatestScore(score) {
+            const label = document.getElementById('latest-score-label');
+            if (!label) {
+                return;
+            }
+            label.textContent = `${score}%`;
+            label.style.color = window.OJTools.getAccuracyColor(score);
         }
 
         function resetView() {

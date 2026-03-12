@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>进度修改</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --border-color: #333;
+            --text-color: #d4d4d4;
+            --btn-bg: #2da44e;
+            --btn-hover: #2c974b;
+            --btn-alt: #0e639c;
+            --btn-danger: #f14c4c;
+            --btn-danger-hover: #d32f2f;
+        }
+
+        body {
+            margin: 0;
+            padding: 4vh 6vw;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 14px;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: var(--btn-bg);
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--btn-hover);
+        }
+
+        .btn-alt {
+            background: var(--btn-alt);
+        }
+
+        .btn-alt:hover {
+            background: #1177bb;
+        }
+
+        .btn-danger {
+            background: var(--btn-danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--btn-danger-hover);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        th {
+            color: #9da3ab;
+            font-weight: 500;
+        }
+
+        .score-label {
+            font-weight: 700;
+            min-width: 42px;
+            display: inline-block;
+        }
+
+        .score-editor {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .score-input {
+            width: 80px;
+            background: #101010;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 8px;
+            outline: none;
+        }
+
+        .score-input:focus {
+            border-color: #3f8cff;
+        }
+
+        .quick-btn {
+            min-width: 32px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .quick-btn-green {
+            background: #2da44e;
+        }
+
+        .quick-btn-red {
+            background: #f14c4c;
+        }
+
+        .quick-btn-red:hover {
+            background: #d32f2f;
+        }
+
+        .muted {
+            color: #909090;
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                border-radius: 0;
+                border: none;
+                min-height: 100vh;
+            }
+
+            th, td {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>进度修改</h2>
+            <div class="actions">
+                <button class="btn-alt" onclick="location.href='index.html'">返回题库</button>
+                <button class="btn-danger" onclick="clearAll()">清空全部记录</button>
+            </div>
+        </div>
+
+        <p class="muted">说明：所有正确率都会自动向下取整，并限制在 0 到 100。✔ 一键改为 100%，✘ 一键改为 0%。</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>题目</th>
+                        <th>第几次提交</th>
+                        <th>当前正确率</th>
+                        <th>修改</th>
+                        <th>删除</th>
+                    </tr>
+                </thead>
+                <tbody id="progress-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="tools.js"></script>
+    <script>
+        function problemTitleMap() {
+            const map = {};
+            window.PROBLEM_LIST.forEach((problem) => {
+                map[problem.id] = problem.title;
+            });
+            return map;
+        }
+
+        function getAllRows() {
+            const records = window.OJTools.getAllRecords();
+            const titleById = problemTitleMap();
+            const rows = [];
+
+            Object.keys(records).forEach((problemId) => {
+                const history = records[problemId] || [];
+                history.forEach((score, index) => {
+                    rows.push({
+                        problemId: problemId,
+                        title: titleById[problemId] || problemId,
+                        index: index,
+                        score: score
+                    });
+                });
+            });
+
+            return rows;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('progress-body');
+            const rows = getAllRows();
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="muted">暂无本机进度记录。</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            rows.forEach((row) => {
+                const tr = document.createElement('tr');
+                const color = window.OJTools.getAccuracyColor(row.score);
+                tr.innerHTML = `
+                    <td>${escapeHtml(row.title)}</td>
+                    <td>${row.index + 1}</td>
+                    <td><span class="score-label" style="color:${color};">${row.score}%</span></td>
+                    <td>
+                        <div class="score-editor">
+                            <input class="score-input" type="number" min="0" max="100" id="input-${row.problemId}-${row.index}" value="${row.score}">
+                            <button class="quick-btn quick-btn-green" title="一键改为100%" onclick="setQuick('${row.problemId}', ${row.index}, 100)">✔</button>
+                            <button class="quick-btn quick-btn-red" title="一键改为0%" onclick="setQuick('${row.problemId}', ${row.index}, 0)">✘</button>
+                            <button onclick="saveScore('${row.problemId}', ${row.index})">保存</button>
+                        </div>
+                    </td>
+                    <td><button class="btn-danger" onclick="deleteScore('${row.problemId}', ${row.index})">删除</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveScore(problemId, index) {
+            const input = document.getElementById(`input-${problemId}-${index}`);
+            const value = input ? input.value : 0;
+            window.OJTools.updateRecord(problemId, index, value);
+            renderTable();
+        }
+
+        function setQuick(problemId, index, score) {
+            window.OJTools.updateRecord(problemId, index, score);
+            renderTable();
+        }
+
+        function deleteScore(problemId, index) {
+            if (!confirm('确认删除这条记录吗？')) {
+                return;
+            }
+            window.OJTools.deleteRecord(problemId, index);
+            renderTable();
+        }
+
+        function clearAll() {
+            if (!confirm('确认清空所有进度记录吗？此操作不可恢复。')) {
+                return;
+            }
+            window.OJTools.clearAllRecords();
+            renderTable();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, function(tag) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[tag] || tag);
+            });
+        }
+
+        renderTable();
+    </script>
+</body>
+</html>
