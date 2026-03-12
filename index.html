@@ -3,106 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>伪代码判题系统 - 主页</title>
+    <title>伪代码判题系统 - 题库</title>
     <style>
-        :root {
-            --bg-color: #121212; --panel-bg: #1e1e1e; --border-color: #333;
-            --text-color: #d4d4d4; --btn-bg: #2da44e; --btn-hover: #2c974b;
-        }
-        body {
-            margin: 0; padding: 4vh 6vw;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color); color: var(--text-color);
-        }
-        .header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px;
-        }
-        .table-container {
-            background: var(--panel-bg); border: 1px solid var(--border-color);
-            border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
-        th { background: #252526; font-weight: 600; color: #858585; }
-        tr:hover { background: #2a2a2b; }
-        a.problem-link { color: #58a6ff; text-decoration: none; font-weight: bold; }
-        a.problem-link:hover { text-decoration: underline; }
-        button {
-            background: var(--btn-bg); color: white; border: none;
-            padding: 8px 16px; cursor: pointer; border-radius: 6px; font-weight: 600;
-        }
+        :root { --bg-color: #121212; --panel-bg: #1e1e1e; --border-color: #333; --text-color: #d4d4d4; --btn-bg: #2da44e; --btn-hover: #2c974b; --btn-alt: #0e639c; }
+        body { margin: 0; padding: 4vh 6vw; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .problem-list { border-collapse: collapse; width: 100%; }
+        .problem-list th, .problem-list td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-color); }
+        .problem-list th { color: #858585; font-weight: normal; }
+        .problem-list tr:hover { background-color: #2a2d2e; }
+        button { background: var(--btn-bg); color: white; border: none; padding: 6px 16px; cursor: pointer; border-radius: 6px; font-weight: 600; font-size: 14px; transition: background 0.2s; }
         button:hover { background: var(--btn-hover); }
-        .btn-secondary { background: #21262d; border: 1px solid rgba(240,246,252,0.1); }
-        .btn-secondary:hover { background: #30363d; }
+        .btn-alt { background: var(--btn-alt); }
+        .btn-alt:hover { background: #1177bb; }
+        .stat { color: #858585; font-size: 13px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>题目列表</h2>
-        <div>
-            <input type="file" id="import-file" style="display: none;" accept=".json">
-            <button class="btn-secondary" onclick="document.getElementById('import-file').click()">导入进度</button>
-            <button class="btn-secondary" onclick="OJTools.exportData()">导出进度</button>
+    <div class="container">
+        <div class="header">
+            <h2>题目列表</h2>
+            <div>
+                <button class="btn-alt" onclick="window.OJTools.exportData()">导出进度</button>
+                <button class="btn-alt" onclick="document.getElementById('import-file').click()">导入进度</button>
+                <input type="file" id="import-file" style="display: none;" accept=".json" onchange="handleImport(event)">
+            </div>
         </div>
-    </div>
-
-    <div class="table-container">
-        <table>
+        <table class="problem-list">
             <thead>
                 <tr>
-                    <th>状态</th>
                     <th>题目</th>
                     <th>提交次数</th>
                     <th>上次正确率</th>
                     <th>平均正确率</th>
+                    <th>操作</th>
                 </tr>
             </thead>
-            <tbody id="problem-list"></tbody>
+            <tbody id="list-body"></tbody>
         </table>
     </div>
 
     <script src="data.js"></script>
     <script src="tools.js"></script>
     <script>
-        function renderTable() {
-            const tbody = document.getElementById('problem-list');
+        function renderList() {
+            const tbody = document.getElementById('list-body');
             tbody.innerHTML = '';
             
-            for (const [id, problem] of Object.entries(window.PROBLEM_DATA)) {
-                const record = OJTools.getRecord(id);
-                const isAttempted = record.submissions > 0;
-                const lastAcc = isAttempted ? `${record.lastAccuracy}%` : '-';
-                const avgAcc = isAttempted ? `${record.avgAccuracy}%` : '-';
-                const statusIcon = record.lastAccuracy >= 100 ? '✅' : (isAttempted ? '🔄' : '📝');
-
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${statusIcon}</td>
-                        <td><a class="problem-link" href="problem.html?id=${id}">${problem.title}</a></td>
-                        <td>${record.submissions}</td>
-                        <td style="color: ${record.lastAccuracy >= 100 ? '#2da44e' : 'inherit'}">${lastAcc}</td>
-                        <td>${avgAcc}</td>
-                    </tr>
+            window.PROBLEM_LIST.forEach(prob => {
+                const stats = window.OJTools.getStats(prob.id);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${prob.title}</strong></td>
+                    <td>${stats.count}</td>
+                    <td>${stats.last !== null ? stats.last + '%' : '-'}</td>
+                    <td>${stats.avg !== null ? stats.avg + '%' : '-'}</td>
+                    <td><button onclick="location.href='problem.html?id=${prob.id}'">开始答题</button></td>
                 `;
-            }
+                tbody.appendChild(tr);
+            });
         }
 
-        document.getElementById('import-file').addEventListener('change', function(e) {
-            if (e.target.files.length > 0) {
-                OJTools.importData(e.target.files[0], (success) => {
-                    if (success) {
-                        alert("导入成功");
-                        renderTable();
-                    } else {
-                        alert("导入失败，请检查文件格式");
-                    }
-                    e.target.value = ''; // Reset input
-                });
-            }
-        });
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            window.OJTools.importData(file, (err) => {
+                if (err) alert('导入失败，JSON格式错误');
+                else renderList();
+                event.target.value = ''; // Reset input
+            });
+        }
 
-        renderTable();
+        renderList();
     </script>
 </body>
 </html>
