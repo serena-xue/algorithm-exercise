@@ -5,69 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>答题界面</title>
     <style>
-        :root {
-            --bg-color: #121212; --panel-bg: #1e1e1e; --border-color: #333;
-            --text-color: #d4d4d4; --btn-bg: #2da44e; --btn-hover: #2c974b;
-        }
-        body {
-            margin: 0; padding: 4vh 6vw; display: flex; flex-direction: column;
-            height: 100vh; box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color); color: var(--text-color);
-        }
-        .nav-header { margin-bottom: 10px; }
-        .nav-header a { color: #58a6ff; text-decoration: none; font-size: 14px; }
-        .nav-header a:hover { text-decoration: underline; }
-        
-        .app-container {
-            display: flex; width: 100%; flex: 1; background-color: var(--panel-bg);
-            border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        }
+        :root { --bg-color: #121212; --panel-bg: #1e1e1e; --border-color: #333; --text-color: #d4d4d4; --btn-bg: #2da44e; --btn-hover: #2c974b; }
+        body { margin: 0; padding: 4vh 6vw; display: flex; height: 100vh; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
+        .app-container { display: flex; width: 100%; height: 100%; background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
         .panel { flex: 1; display: flex; flex-direction: column; width: 50%; }
         .panel-left { border-right: 1px solid var(--border-color); }
-        .header {
-            padding: 10px 20px; background: #252526; border-bottom: 1px solid var(--border-color);
-            display: flex; justify-content: space-between; align-items: center; height: 40px;
-        }
+        .header { padding: 10px 20px; background: #252526; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; height: 40px; }
         .content { padding: 20px; overflow-y: auto; flex: 1; box-sizing: border-box; }
         #editor-container { flex: 1; width: 100%; }
-        
-        button {
-            background: var(--btn-bg); color: white; border: none;
-            padding: 6px 16px; cursor: pointer; border-radius: 6px; font-weight: 600; font-size: 14px;
-        }
+        button { background: var(--btn-bg); color: white; border: none; padding: 6px 16px; cursor: pointer; border-radius: 6px; font-weight: 600; font-size: 14px; transition: background 0.2s; }
         button:hover { background: var(--btn-hover); }
-
-        .diff-view {
-            font-family: Consolas, "Courier New", monospace;
-            white-space: pre-wrap; word-break: break-all; font-size: 14px; line-height: 1.5;
-            background: #000; padding: 16px; border-radius: 6px; border: 1px solid var(--border-color);
-        }
+        .btn-back { background: transparent; border: 1px solid var(--border-color); color: var(--text-color); }
+        .btn-back:hover { background: #333; }
+        .diff-view { font-family: Consolas, monospace; white-space: pre-wrap; word-break: break-all; font-size: 14px; line-height: 1.5; background: #000; padding: 16px; border-radius: 6px; border: 1px solid var(--border-color); }
         .diff-added { background-color: rgba(241, 76, 76, 0.4); text-decoration: line-through; }
         .diff-removed { background-color: rgba(35, 209, 96, 0.4); }
         .diff-match { color: #cccccc; }
         .metric { font-size: 18px; margin-bottom: 16px; padding: 10px; background: #2b2b2b; border-left: 4px solid var(--btn-bg); border-radius: 4px; }
-
-        @media (max-width: 768px) {
-            body { padding: 0; }
-            .nav-header { padding: 10px; margin: 0; background: var(--panel-bg); }
-            .app-container { flex-direction: column; border-radius: 0; border: none; }
-            .panel { width: 100%; height: 50%; border-right: none; }
-            .panel-left { border-bottom: 1px solid var(--border-color); }
-        }
+        @media (max-width: 768px) { body { padding: 0; } .app-container { flex-direction: column; border-radius: 0; border: none; } .panel { width: 100%; height: 50%; border-right: none; } .panel-left { border-bottom: 1px solid var(--border-color); } }
     </style>
 </head>
 <body>
-
-    <div class="nav-header">
-        <a href="index.html">← 返回题目列表</a>
-    </div>
-
     <div class="app-container">
         <div class="panel panel-left" id="left-panel">
             <div class="header">
-                <h3 id="problem-title" style="margin: 0; font-size: 16px;">加载中...</h3>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn-back" onclick="location.href='index.html'">返回题库</button>
+                    <h3 id="problem-title" style="margin: 0; font-size: 16px;">加载中...</h3>
+                </div>
             </div>
             <div class="content" id="problem-content"></div>
         </div>
@@ -88,26 +53,13 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const problemId = urlParams.get('id');
-        const config = window.PROBLEM_DATA[problemId];
-        let originalProblemHTML = '';
+        const config = window.PROBLEM_LIST.find(p => p.id === problemId);
 
         if (!config) {
-            document.body.innerHTML = '<h2 style="padding: 20px;">题目未找到，请<a href="index.html" style="color:#58a6ff;">返回主页</a></h2>';
-        } else {
-            initPage();
-            require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
-            require(['vs/editor/editor.main'], function() {
-                window.editor = monaco.editor.create(document.getElementById('editor-container'), {
-                    value: config.initialCode,
-                    language: config.language,
-                    theme: 'vs-dark',
-                    automaticLayout: true,
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    scrollBeyondLastLine: false
-                });
-            });
+            document.body.innerHTML = '<h2 style="padding: 20px;">题目未找到，请返回主页。</h2>';
         }
+
+        let originalProblemHTML = '';
 
         function initPage() {
             document.getElementById('problem-title').innerText = config.title;
@@ -115,6 +67,21 @@
             contentDiv.innerHTML = config.descriptionHTML;
             originalProblemHTML = contentDiv.innerHTML;
         }
+
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            if(!config) return;
+            initPage();
+            window.editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: config.initialCode,
+                language: config.language,
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 14,
+                scrollBeyondLastLine: false
+            });
+        });
 
         function submitCode() {
             const userCode = window.editor.getValue();
@@ -137,8 +104,8 @@
 
             const accuracy = ((matchCount / expected.length) * 100).toFixed(2);
             
-            // 调用 tools.js 持久化存储
-            OJTools.saveSubmission(problemId, accuracy);
+            // 记录到 LocalStorage
+            window.OJTools.addRecord(problemId, accuracy);
 
             document.getElementById('problem-content').innerHTML = `
                 <div class="metric">
@@ -149,7 +116,10 @@
                     <span style="display:inline-block; width:12px; height:12px; background:rgba(35,209,96,0.4); margin-right:5px; margin-left: 15px; vertical-align:middle;"></span>缺失字符/格式
                 </div>
                 <div class="diff-view">${diffHTML}</div>
-                <button style="margin-top: 20px; background: #0e639c;" onclick="resetView()">← 返回题目</button>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button style="background: #0e639c;" onclick="resetView()">重新答题</button>
+                    <button style="background: #333;" onclick="location.href='index.html'">返回题库</button>
+                </div>
             `;
         }
 
