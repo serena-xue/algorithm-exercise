@@ -3,358 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>伪代码判题系统 (Pseudo OJ)</title>
+    <title>伪代码判题系统 - 主页</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --panel-bg: #1e1e1e;
-            --border-color: #333;
-            --text-color: #d4d4d4;
-            --btn-bg: #2da44e;
-            --btn-hover: #2c974b;
+            --bg-color: #121212; --panel-bg: #1e1e1e; --border-color: #333;
+            --text-color: #d4d4d4; --btn-bg: #2da44e; --btn-hover: #2c974b;
         }
-
         body {
-            margin: 0;
-            padding: 4vh 6vw;
-            height: 100vh;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
+            margin: 0; padding: 4vh 6vw;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color);
         }
-
-        /* 视图容器抽象 */
-        .view-container {
-            display: none;
-            width: 100%;
-            height: 100%;
-            background-color: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        }
-        .view-container.active {
-            display: flex;
-        }
-
-        /* 主页表格视图样式 */
-        #home-view {
-            flex-direction: column;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .home-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 20px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
+        .table-container {
+            background: var(--panel-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
-        th, td {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        th {
-            background-color: #252526;
-            font-weight: 600;
-        }
-        tr:hover { background-color: #2a2d2e; }
-
-        /* 题目视图样式 */
-        .panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            width: 50%;
-        }
-        .panel-left { border-right: 1px solid var(--border-color); }
-        .header {
-            padding: 10px 20px;
-            background: #252526;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 40px;
-        }
-        .content {
-            padding: 20px;
-            overflow-y: auto;
-            flex: 1;
-            box-sizing: border-box;
-        }
-        #editor-container { flex: 1; width: 100%; }
-
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
+        th { background: #252526; font-weight: 600; color: #858585; }
+        tr:hover { background: #2a2a2b; }
+        a.problem-link { color: #58a6ff; text-decoration: none; font-weight: bold; }
+        a.problem-link:hover { text-decoration: underline; }
         button {
-            background: var(--btn-bg);
-            color: white;
-            border: none;
-            padding: 6px 16px;
-            cursor: pointer;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 14px;
-            transition: background 0.2s;
+            background: var(--btn-bg); color: white; border: none;
+            padding: 8px 16px; cursor: pointer; border-radius: 6px; font-weight: 600;
         }
         button:hover { background: var(--btn-hover); }
-        .btn-secondary { background: #30363d; border: 1px solid #8b949e; }
-        .btn-secondary:hover { background: #8b949e; }
-
-        /* 严格格式匹配视图 */
-        .diff-view {
-            font-family: Consolas, "Courier New", monospace;
-            white-space: pre-wrap;
-            word-break: break-all;
-            font-size: 14px;
-            line-height: 1.5;
-            background: #000;
-            padding: 16px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-        .diff-added { background-color: rgba(241, 76, 76, 0.4); text-decoration: line-through; }
-        .diff-removed { background-color: rgba(35, 209, 96, 0.4); }
-        .diff-match { color: #cccccc; }
-
-        @media (max-width: 768px) {
-            body { padding: 0; }
-            .view-container { border-radius: 0; border: none; }
-            #problem-view { flex-direction: column; }
-            .panel { width: 100%; height: 50%; border-right: none; }
-            .panel-left { border-bottom: 1px solid var(--border-color); }
-        }
+        .btn-secondary { background: #21262d; border: 1px solid rgba(240,246,252,0.1); }
+        .btn-secondary:hover { background: #30363d; }
     </style>
 </head>
 <body>
-
-    <div id="home-view" class="view-container active">
-        <div class="home-header">
-            <h2>题目列表</h2>
-            <div>
-                <button class="btn-secondary" onclick="exportData()">导出进度</button>
-                <label class="btn-secondary" style="padding: 6px 16px; cursor: pointer; border-radius: 6px; margin-left: 8px;">
-                    导入进度
-                    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
-                </label>
-            </div>
+    <div class="header">
+        <h2>题目列表</h2>
+        <div>
+            <input type="file" id="import-file" style="display: none;" accept=".json">
+            <button class="btn-secondary" onclick="document.getElementById('import-file').click()">导入进度</button>
+            <button class="btn-secondary" onclick="OJTools.exportData()">导出进度</button>
         </div>
+    </div>
+
+    <div class="table-container">
         <table>
             <thead>
                 <tr>
+                    <th>状态</th>
                     <th>题目</th>
                     <th>提交次数</th>
                     <th>上次正确率</th>
                     <th>平均正确率</th>
-                    <th>操作</th>
                 </tr>
             </thead>
-            <tbody id="problem-list-body">
-                </tbody>
+            <tbody id="problem-list"></tbody>
         </table>
     </div>
 
-    <div id="problem-view" class="view-container">
-        <div class="panel panel-left" id="left-panel">
-            <div class="header">
-                <button class="btn-secondary" onclick="backToHome()">← 返回列表</button>
-                <h3 id="problem-title" style="margin: 0; font-size: 16px;">加载中...</h3>
-            </div>
-            <div class="content" id="problem-content"></div>
-        </div>
-        <div class="panel panel-right">
-            <div class="header">
-                <span id="lang-label" style="font-size: 14px; font-weight: bold; color: #858585;">Python</span>
-                <button onclick="submitCode()">提交运行</button>
-            </div>
-            <div id="editor-container"></div>
-        </div>
-    </div>
-
     <script src="data.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
-    
+    <script src="tools.js"></script>
     <script>
-        const STORAGE_KEY = 'pseudo_oj_data';
-        let currentProblemId = null;
-        let originalProblemHTML = '';
-
-        /* ---------------- 本地存储逻辑 ---------------- */
-        function getStorageData() {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        }
-
-        function saveRecord(problemId, accuracy) {
-            const data = getStorageData();
-            if (!data[problemId]) {
-                data[problemId] = { attempts: 0, history: [] };
-            }
-            data[problemId].attempts += 1;
-            data[problemId].history.push(parseFloat(accuracy));
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        }
-
-        function exportData() {
-            const dataStr = JSON.stringify(getStorageData(), null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `pseudo_oj_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsedData = JSON.parse(e.target.result);
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedData));
-                    alert("导入成功！");
-                    renderHome();
-                } catch (err) {
-                    alert("JSON 解析失败，文件格式可能有误。");
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; // Reset input
-        }
-
-        /* ---------------- 视图渲染逻辑 ---------------- */
-        function renderHome() {
-            const tbody = document.getElementById('problem-list-body');
-            const stats = getStorageData();
+        function renderTable() {
+            const tbody = document.getElementById('problem-list');
             tbody.innerHTML = '';
-
-            window.PROBLEM_LIST.forEach(prob => {
-                const probStats = stats[prob.id] || { attempts: 0, history: [] };
-                const attempts = probStats.attempts;
-                const lastAcc = attempts > 0 ? probStats.history[probStats.history.length - 1] + '%' : '-';
-                const avgAcc = attempts > 0 
-                    ? (probStats.history.reduce((a, b) => a + b, 0) / attempts).toFixed(2) + '%' 
-                    : '-';
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${prob.title}</td>
-                    <td>${attempts}</td>
-                    <td>${lastAcc}</td>
-                    <td>${avgAcc}</td>
-                    <td><button onclick="openProblem('${prob.id}')">进入</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function openProblem(id) {
-            currentProblemId = id;
-            const config = window.PROBLEM_LIST.find(p => p.id === id);
             
-            // 切换视图
-            document.getElementById('home-view').classList.remove('active');
-            document.getElementById('problem-view').classList.add('active');
+            for (const [id, problem] of Object.entries(window.PROBLEM_DATA)) {
+                const record = OJTools.getRecord(id);
+                const isAttempted = record.submissions > 0;
+                const lastAcc = isAttempted ? `${record.lastAccuracy}%` : '-';
+                const avgAcc = isAttempted ? `${record.avgAccuracy}%` : '-';
+                const statusIcon = record.lastAccuracy >= 100 ? '✅' : (isAttempted ? '🔄' : '📝');
 
-            // 渲染题目面板
-            document.getElementById('problem-title').innerText = config.title;
-            const contentDiv = document.getElementById('problem-content');
-            contentDiv.innerHTML = config.descriptionHTML;
-            originalProblemHTML = contentDiv.innerHTML;
-            document.getElementById('lang-label').innerText = config.language.charAt(0).toUpperCase() + config.language.slice(1);
-
-            // 更新编辑器状态（避免重复创建实例）
-            if (!window.editor) {
-                initEditor(config.initialCode, config.language);
-            } else {
-                window.editor.setValue(config.initialCode);
-                monaco.editor.setModelLanguage(window.editor.getModel(), config.language);
-                window.editor.layout(); // 必须调用：唤醒隐藏状态下的 Canvas 尺寸重新计算
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${statusIcon}</td>
+                        <td><a class="problem-link" href="problem.html?id=${id}">${problem.title}</a></td>
+                        <td>${record.submissions}</td>
+                        <td style="color: ${record.lastAccuracy >= 100 ? '#2da44e' : 'inherit'}">${lastAcc}</td>
+                        <td>${avgAcc}</td>
+                    </tr>
+                `;
             }
         }
 
-        function backToHome() {
-            currentProblemId = null;
-            document.getElementById('problem-view').classList.remove('active');
-            document.getElementById('home-view').classList.add('active');
-            renderHome();
-        }
-
-        /* ---------------- 编辑器与判题逻辑 ---------------- */
-        function initEditor(initialCode, language) {
-            require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
-            require(['vs/editor/editor.main'], function() {
-                window.editor = monaco.editor.create(document.getElementById('editor-container'), {
-                    value: initialCode,
-                    language: language,
-                    theme: 'vs-dark',
-                    automaticLayout: true,
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    scrollBeyondLastLine: false
+        document.getElementById('import-file').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                OJTools.importData(e.target.files[0], (success) => {
+                    if (success) {
+                        alert("导入成功");
+                        renderTable();
+                    } else {
+                        alert("导入失败，请检查文件格式");
+                    }
+                    e.target.value = ''; // Reset input
                 });
-            });
-        }
+            }
+        });
 
-        function submitCode() {
-            const config = window.PROBLEM_LIST.find(p => p.id === currentProblemId);
-            const userCode = window.editor.getValue();
-            const expected = config.expectedCode;
-
-            const diff = Diff.diffChars(expected, userCode);
-            let diffHTML = '';
-            let matchCount = 0;
-
-            diff.forEach((part) => {
-                if (part.added) {
-                    diffHTML += `<span class="diff-added">${escapeHTML(part.value)}</span>`;
-                } else if (part.removed) {
-                    diffHTML += `<span class="diff-removed">${escapeHTML(part.value)}</span>`;
-                } else {
-                    diffHTML += `<span class="diff-match">${escapeHTML(part.value)}</span>`;
-                    matchCount += part.value.length;
-                }
-            });
-
-            const accuracy = ((matchCount / expected.length) * 100).toFixed(2);
-            saveRecord(currentProblemId, accuracy); // 持久化记录
-
-            document.getElementById('problem-content').innerHTML = `
-                <div style="font-size: 18px; margin-bottom: 16px; padding: 10px; background: #2b2b2b; border-left: 4px solid var(--btn-bg);">
-                    严格匹配正确率: <strong style="color: ${accuracy >= 100 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
-                </div>
-                <div style="margin-bottom: 10px; font-size: 13px; color: #858585;">
-                    <span style="display:inline-block; width:12px; height:12px; background:rgba(241,76,76,0.4); margin-right:5px; vertical-align:middle;"></span>冗余字符/格式
-                    <span style="display:inline-block; width:12px; height:12px; background:rgba(35,209,96,0.4); margin-right:5px; margin-left: 15px; vertical-align:middle;"></span>缺失字符/格式
-                </div>
-                <div class="diff-view">${diffHTML}</div>
-                <button style="margin-top: 20px; background: #0e639c;" onclick="resetView()">← 返回题目</button>
-            `;
-        }
-
-        function resetView() {
-            document.getElementById('problem-content').innerHTML = originalProblemHTML;
-        }
-
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
-        }
-
-        // 初始化入口
-        window.onload = () => {
-            renderHome();
-        };
+        renderTable();
     </script>
 </body>
 </html>
