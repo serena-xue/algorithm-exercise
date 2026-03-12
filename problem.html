@@ -100,26 +100,28 @@ function formatCodeForJson(code) {
         function submitCode() {
             const userCode = window.editor.getValue();
             const expected = formatCodeForJson(config.expectedCode);
-            const diff = Diff.diffChars(expected, userCode);
+           // 改为单词级匹配，保留空格以维持严格格式对齐
+    const diff = Diff.diffWordsWithSpace(expected, userCode);
 
-            let diffHTML = '';
-            let matchCount = 0;
+    let diffHTML = '';
+    let matchTokenCount = 0;
+    let expectedTokenCount = 0;
 
-            diff.forEach((part) => {
-                if (part.added) {
-                    diffHTML += `<span class="diff-added">${escapeHTML(part.value)}</span>`;
-                } else if (part.removed) {
-                    diffHTML += `<span class="diff-removed">${escapeHTML(part.value)}</span>`;
-                } else {
-                    diffHTML += `<span class="diff-match">${escapeHTML(part.value)}</span>`;
-                    matchCount += part.value.length;
-                }
-            });
+    diff.forEach((part) => {
+        if (part.added) {
+            diffHTML += `<span class="diff-added">${escapeHTML(part.value)}</span>`;
+        } else if (part.removed) {
+            diffHTML += `<span class="diff-removed">${escapeHTML(part.value)}</span>`;
+            expectedTokenCount += part.count; // 累加标准答案的 Token 数
+        } else {
+            diffHTML += `<span class="diff-match">${escapeHTML(part.value)}</span>`;
+            matchTokenCount += part.count;    // 累加匹配的 Token 数
+            expectedTokenCount += part.count; 
+        }
+    });
 
-            const accuracy = ((matchCount / expected.length) * 100).toFixed(2);
-            
-            // 记录到 LocalStorage
-            window.OJTools.addRecord(problemId, accuracy);
+    // 正确率计算改为单词/Token级
+    const accuracy = ((matchTokenCount / expectedTokenCount) * 100).toFixed(2);
 
             document.getElementById('problem-content').innerHTML = `
                 <div class="metric">
