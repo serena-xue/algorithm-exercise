@@ -14,21 +14,21 @@
             --btn-hover: #2c974b;
         }
 
-        /* 增加全局边距设定 */
         body {
             margin: 0;
             padding: 4vh 6vw;
-            display: flex;
             height: 100vh;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
+            display: flex;
+            flex-direction: column;
         }
 
-        /* 容器用于包裹核心区域，实现内聚和圆角 */
-        .app-container {
-            display: flex;
+        /* 视图容器抽象 */
+        .view-container {
+            display: none;
             width: 100%;
             height: 100%;
             background-color: var(--panel-bg);
@@ -37,18 +37,45 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         }
+        .view-container.active {
+            display: flex;
+        }
 
+        /* 主页表格视图样式 */
+        #home-view {
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .home-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            background-color: #252526;
+            font-weight: 600;
+        }
+        tr:hover { background-color: #2a2d2e; }
+
+        /* 题目视图样式 */
         .panel {
             flex: 1;
             display: flex;
             flex-direction: column;
             width: 50%;
         }
-
-        .panel-left {
-            border-right: 1px solid var(--border-color);
-        }
-
+        .panel-left { border-right: 1px solid var(--border-color); }
         .header {
             padding: 10px 20px;
             background: #252526;
@@ -58,18 +85,13 @@
             align-items: center;
             height: 40px;
         }
-
         .content {
             padding: 20px;
             overflow-y: auto;
             flex: 1;
             box-sizing: border-box;
         }
-
-        #editor-container {
-            flex: 1;
-            width: 100%;
-        }
+        #editor-container { flex: 1; width: 100%; }
 
         button {
             background: var(--btn-bg);
@@ -82,15 +104,14 @@
             font-size: 14px;
             transition: background 0.2s;
         }
+        button:hover { background: var(--btn-hover); }
+        .btn-secondary { background: #30363d; border: 1px solid #8b949e; }
+        .btn-secondary:hover { background: #8b949e; }
 
-        button:hover {
-            background: var(--btn-hover);
-        }
-
-        /* Diff 视图高度保真样式 */
-.diff-view {
+        /* 严格格式匹配视图 */
+        .diff-view {
             font-family: Consolas, "Courier New", monospace;
-            white-space: pre-wrap; /* 关键属性：保留空白符并允许自动换行 */
+            white-space: pre-wrap;
             word-break: break-all;
             font-size: 14px;
             line-height: 1.5;
@@ -99,52 +120,55 @@
             border-radius: 6px;
             border: 1px solid var(--border-color);
         }
-
         .diff-added { background-color: rgba(241, 76, 76, 0.4); text-decoration: line-through; }
         .diff-removed { background-color: rgba(35, 209, 96, 0.4); }
         .diff-match { color: #cccccc; }
 
-        .metric {
-            font-size: 18px;
-            margin-bottom: 16px;
-            padding: 10px;
-            background: #2b2b2b;
-            border-left: 4px solid var(--btn-bg);
-            border-radius: 4px;
-        }
-
-        /* 移动端适配：移除外边距并切换 Flex 方向 */
         @media (max-width: 768px) {
-            body {
-                padding: 0;
-            }
-            .app-container {
-                flex-direction: column;
-                border-radius: 0;
-                border: none;
-            }
-            .panel {
-                width: 100%;
-                height: 50%;
-                border-right: none;
-            }
-            .panel-left {
-                border-bottom: 1px solid var(--border-color);
-            }
+            body { padding: 0; }
+            .view-container { border-radius: 0; border: none; }
+            #problem-view { flex-direction: column; }
+            .panel { width: 100%; height: 50%; border-right: none; }
+            .panel-left { border-bottom: 1px solid var(--border-color); }
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
+    <div id="home-view" class="view-container active">
+        <div class="home-header">
+            <h2>题目列表</h2>
+            <div>
+                <button class="btn-secondary" onclick="exportData()">导出进度</button>
+                <label class="btn-secondary" style="padding: 6px 16px; cursor: pointer; border-radius: 6px; margin-left: 8px;">
+                    导入进度
+                    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
+                </label>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>题目</th>
+                    <th>提交次数</th>
+                    <th>上次正确率</th>
+                    <th>平均正确率</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="problem-list-body">
+                </tbody>
+        </table>
+    </div>
+
+    <div id="problem-view" class="view-container">
         <div class="panel panel-left" id="left-panel">
             <div class="header">
+                <button class="btn-secondary" onclick="backToHome()">← 返回列表</button>
                 <h3 id="problem-title" style="margin: 0; font-size: 16px;">加载中...</h3>
             </div>
-            <div class="content" id="problem-content">
-                </div>
+            <div class="content" id="problem-content"></div>
         </div>
-
         <div class="panel panel-right">
             <div class="header">
                 <span id="lang-label" style="font-size: 14px; font-weight: bold; color: #858585;">Python</span>
@@ -159,64 +183,153 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
     
     <script>
-        const config = window.PROBLEM_DATA;
+        const STORAGE_KEY = 'pseudo_oj_data';
+        let currentProblemId = null;
         let originalProblemHTML = '';
 
-        // DOM 初始化
-        function initPage() {
+        /* ---------------- 本地存储逻辑 ---------------- */
+        function getStorageData() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        }
+
+        function saveRecord(problemId, accuracy) {
+            const data = getStorageData();
+            if (!data[problemId]) {
+                data[problemId] = { attempts: 0, history: [] };
+            }
+            data[problemId].attempts += 1;
+            data[problemId].history.push(parseFloat(accuracy));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(getStorageData(), null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pseudo_oj_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedData));
+                    alert("导入成功！");
+                    renderHome();
+                } catch (err) {
+                    alert("JSON 解析失败，文件格式可能有误。");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
+        }
+
+        /* ---------------- 视图渲染逻辑 ---------------- */
+        function renderHome() {
+            const tbody = document.getElementById('problem-list-body');
+            const stats = getStorageData();
+            tbody.innerHTML = '';
+
+            window.PROBLEM_LIST.forEach(prob => {
+                const probStats = stats[prob.id] || { attempts: 0, history: [] };
+                const attempts = probStats.attempts;
+                const lastAcc = attempts > 0 ? probStats.history[probStats.history.length - 1] + '%' : '-';
+                const avgAcc = attempts > 0 
+                    ? (probStats.history.reduce((a, b) => a + b, 0) / attempts).toFixed(2) + '%' 
+                    : '-';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${prob.title}</td>
+                    <td>${attempts}</td>
+                    <td>${lastAcc}</td>
+                    <td>${avgAcc}</td>
+                    <td><button onclick="openProblem('${prob.id}')">进入</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openProblem(id) {
+            currentProblemId = id;
+            const config = window.PROBLEM_LIST.find(p => p.id === id);
+            
+            // 切换视图
+            document.getElementById('home-view').classList.remove('active');
+            document.getElementById('problem-view').classList.add('active');
+
+            // 渲染题目面板
             document.getElementById('problem-title').innerText = config.title;
             const contentDiv = document.getElementById('problem-content');
             contentDiv.innerHTML = config.descriptionHTML;
             originalProblemHTML = contentDiv.innerHTML;
             document.getElementById('lang-label').innerText = config.language.charAt(0).toUpperCase() + config.language.slice(1);
+
+            // 更新编辑器状态（避免重复创建实例）
+            if (!window.editor) {
+                initEditor(config.initialCode, config.language);
+            } else {
+                window.editor.setValue(config.initialCode);
+                monaco.editor.setModelLanguage(window.editor.getModel(), config.language);
+                window.editor.layout(); // 必须调用：唤醒隐藏状态下的 Canvas 尺寸重新计算
+            }
         }
 
-        // 初始化 Monaco Editor
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
-        require(['vs/editor/editor.main'], function() {
-            initPage();
-            window.editor = monaco.editor.create(document.getElementById('editor-container'), {
-                value: config.initialCode,
-                language: config.language,
-                theme: 'vs-dark',
-                automaticLayout: true,
-                minimap: { enabled: false },
-                fontSize: 14,
-                scrollBeyondLastLine: false
-            });
-        });
+        function backToHome() {
+            currentProblemId = null;
+            document.getElementById('problem-view').classList.remove('active');
+            document.getElementById('home-view').classList.add('active');
+            renderHome();
+        }
 
-function submitCode() {
+        /* ---------------- 编辑器与判题逻辑 ---------------- */
+        function initEditor(initialCode, language) {
+            require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
+            require(['vs/editor/editor.main'], function() {
+                window.editor = monaco.editor.create(document.getElementById('editor-container'), {
+                    value: initialCode,
+                    language: language,
+                    theme: 'vs-dark',
+                    automaticLayout: true,
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    scrollBeyondLastLine: false
+                });
+            });
+        }
+
+        function submitCode() {
+            const config = window.PROBLEM_LIST.find(p => p.id === currentProblemId);
             const userCode = window.editor.getValue();
             const expected = config.expectedCode;
 
-            // 严格匹配模式：不对空白字符做任何预处理
             const diff = Diff.diffChars(expected, userCode);
-
             let diffHTML = '';
             let matchCount = 0;
 
-            // 直接遍历 Edit Script 进行渲染
             diff.forEach((part) => {
                 if (part.added) {
-                    // 用户多余的输入（包括多余的空格或换行）
                     diffHTML += `<span class="diff-added">${escapeHTML(part.value)}</span>`;
                 } else if (part.removed) {
-                    // 用户缺失的输入（包括缺失的空格或换行）
                     diffHTML += `<span class="diff-removed">${escapeHTML(part.value)}</span>`;
                 } else {
-                    // 完全匹配的片段
                     diffHTML += `<span class="diff-match">${escapeHTML(part.value)}</span>`;
                     matchCount += part.value.length;
                 }
             });
 
-            // 严格模式下的正确率计算：分母为标准答案的总字符数（含空白符）
             const accuracy = ((matchCount / expected.length) * 100).toFixed(2);
+            saveRecord(currentProblemId, accuracy); // 持久化记录
 
-            // 更新 DOM 渲染
             document.getElementById('problem-content').innerHTML = `
-                <div class="metric">
+                <div style="font-size: 18px; margin-bottom: 16px; padding: 10px; background: #2b2b2b; border-left: 4px solid var(--btn-bg);">
                     严格匹配正确率: <strong style="color: ${accuracy >= 100 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
                 </div>
                 <div style="margin-bottom: 10px; font-size: 13px; color: #858585;">
@@ -227,18 +340,21 @@ function submitCode() {
                 <button style="margin-top: 20px; background: #0e639c;" onclick="resetView()">← 返回题目</button>
             `;
         }
-        
+
         function resetView() {
             document.getElementById('problem-content').innerHTML = originalProblemHTML;
         }
 
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-                }[tag] || tag)
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         }
+
+        // 初始化入口
+        window.onload = () => {
+            renderHome();
+        };
     </script>
 </body>
 </html>
