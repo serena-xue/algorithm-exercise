@@ -1,67 +1,63 @@
+// tools.js
 const STORAGE_KEY = 'pseudo_oj_records';
 
+function loadAllRecords() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : {};
+}
+
+function saveAllRecords(records) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
 window.OJTools = {
-    // 获取所有记录
-    getRecords: function() {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : {};
-    },
-
-    // 获取单题记录
-    getRecord: function(problemId) {
-        return this.getRecords()[problemId] || {
-            submissions: 0,
-            accuracies: [],
-            lastAccuracy: null,
-            avgAccuracy: null
-        };
-    },
-
-    // 保存单次提交结果
-    saveSubmission: function(problemId, accuracy) {
-        const records = this.getRecords();
+    // 记录一次提交的正确率
+    addRecord: function(problemId, accuracy) {
+        const records = loadAllRecords();
         if (!records[problemId]) {
-            records[problemId] = { submissions: 0, accuracies: [], lastAccuracy: null, avgAccuracy: null };
+            records[problemId] = [];
         }
-        
-        const rec = records[problemId];
-        const accFloat = parseFloat(accuracy);
-        
-        rec.submissions += 1;
-        rec.accuracies.push(accFloat);
-        rec.lastAccuracy = accFloat;
-        
-        const sum = rec.accuracies.reduce((a, b) => a + b, 0);
-        rec.avgAccuracy = (sum / rec.accuracies.length).toFixed(2);
+        records[problemId].push(parseFloat(accuracy));
+        saveAllRecords(records);
+    },
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    // 获取题目的统计信息 O(1) ~ O(N) 
+    getStats: function(problemId) {
+        const records = loadAllRecords();
+        const history = records[problemId] || [];
+        if (history.length === 0) {
+            return { count: 0, last: null, avg: null };
+        }
+        const last = history[history.length - 1];
+        const sum = history.reduce((a, b) => a + b, 0);
+        const avg = (sum / history.length).toFixed(2);
+        return { count: history.length, last: last.toFixed(2), avg: avg };
     },
 
     // 导出数据为 JSON 文件
     exportData: function() {
         const data = localStorage.getItem(STORAGE_KEY) || '{}';
-        const blob = new Blob([data], { type: "application/json" });
+        const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `pseudo_oj_backup_${new Date().getTime()}.json`;
+        a.download = `oj_records_${new Date().getTime()}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     },
 
-    // 导入 JSON 数据
+    // 从 JSON 文件导入数据并覆盖 localStorage
     importData: function(file, callback) {
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
                 const json = JSON.parse(e.target.result);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(json));
-                if(callback) callback(true);
+                saveAllRecords(json);
+                if (callback) callback(null);
             } catch (err) {
-                console.error("Invalid JSON file", err);
-                if(callback) callback(false);
+                if (callback) callback(err);
             }
         };
         reader.readAsText(file);
