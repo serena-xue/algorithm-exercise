@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>伪代码判题系统 (Pseudo OJ)</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #252526;
+            --border-color: #333;
+            --text-color: #d4d4d4;
+            --btn-bg: #2da44e;
+            --btn-hover: #2c974b;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 50%;
+        }
+
+        .panel-left {
+            border-right: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+        }
+
+        .panel-right {
+            background-color: var(--panel-bg);
+        }
+
+        .header {
+            padding: 10px 20px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+        }
+
+        .content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            box-sizing: border-box;
+        }
+
+        #editor-container {
+            flex: 1;
+            width: 100%;
+        }
+
+        button {
+            background: var(--btn-bg);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: var(--btn-hover);
+        }
+
+        /* Diff 视图高亮样式 */
+        .diff-view {
+            font-family: Consolas, "Courier New", monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #000;
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .diff-added { background-color: rgba(241, 76, 76, 0.4); text-decoration: line-through; } /* 冗余输入 (Red) */
+        .diff-removed { background-color: rgba(35, 209, 96, 0.4); } /* 缺失字符 (Green) */
+        .diff-match { color: #cccccc; } /* 匹配字符 (Gray) */
+
+        .metric {
+            font-size: 18px;
+            margin-bottom: 16px;
+            padding: 10px;
+            background: #2b2b2b;
+            border-left: 4px solid var(--btn-bg);
+            border-radius: 4px;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                overflow: auto;
+            }
+            .panel {
+                width: 100%;
+                height: 50vh;
+                border-right: none;
+            }
+            .panel-left {
+                border-bottom: 1px solid var(--border-color);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="panel panel-left" id="left-panel">
+        <div class="header">
+            <h3 style="margin: 0; font-size: 16px;">题目描述</h3>
+        </div>
+        <div class="content" id="problem-content">
+            <h2>两数之和 (Two Sum)</h2>
+            <p>给定一个整数数组 <code>nums</code> 和一个整数目标值 <code>target</code>，请你在该数组中找出 <strong>和为目标值</strong> <code>target</code> 的那 <strong>两个</strong> 整数，并返回它们的数组下标。</p>
+            <p>你可以假设每种输入只会对应一个答案。但是，数组中同一个元素在答案里不能重复出现。</p>
+            <p><strong>示例:</strong></p>
+            <pre style="background: #2b2b2b; padding: 10px; border-radius: 4px;"><code>输入：nums = [2,7,11,15], target = 9
+输出：[0,1]</code></pre>
+        </div>
+    </div>
+
+    <div class="panel panel-right">
+        <div class="header">
+            <span style="font-size: 14px; font-weight: bold; color: #858585;">JavaScript</span>
+            <button onclick="submitCode()">提交运行</button>
+        </div>
+        <div id="editor-container"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
+    
+    <script>
+        // 目标正确代码 (作为 Diff 对比标准)
+        const EXPECTED_CODE = `function twoSum(nums, target) {
+    const map = new Map();
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (map.has(complement)) {
+            return [map.get(complement), i];
+        }
+        map.set(nums[i], i);
+    }
+    return [];
+}`;
+
+        // 保存原始题目 HTML，用于重置视图
+        const originalProblemHTML = document.getElementById('problem-content').innerHTML;
+
+        // 初始化 Monaco Editor
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            window.editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: 'function twoSum(nums, target) {\n    // 在此处编写你的代码\n    \n}',
+                language: 'javascript',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 14
+            });
+        });
+
+        function submitCode() {
+            const userCode = window.editor.getValue();
+
+            // 预处理：忽略所有空白字符（空格、换行、制表符等）
+            const strippedExpected = EXPECTED_CODE.replace(/\s+/g, '');
+            const strippedUser = userCode.replace(/\s+/g, '');
+
+            // 使用 JSDiff 计算 O(ND) 差分
+            const diff = Diff.diffChars(strippedExpected, strippedUser);
+
+            let diffHTML = '';
+            let matchCount = 0;
+
+            diff.forEach((part) => {
+                if (part.added) {
+                    // 用户代码中多余的字符
+                    diffHTML += `<span class="diff-added">${escapeHTML(part.value)}</span>`;
+                } else if (part.removed) {
+                    // 用户代码中缺失的正确字符
+                    diffHTML += `<span class="diff-removed">${escapeHTML(part.value)}</span>`;
+                } else {
+                    // 匹配的字符
+                    diffHTML += `<span class="diff-match">${escapeHTML(part.value)}</span>`;
+                    matchCount += part.value.length;
+                }
+            });
+
+            // 计算正确率（相同字符数量 / 标准答案的总非空字符数）
+            const accuracy = ((matchCount / strippedExpected.length) * 100).toFixed(2);
+
+            // 替换左侧面板视图
+            const leftContent = document.getElementById('problem-content');
+            leftContent.innerHTML = `
+                <div class="metric">
+                    代码比对正确率: <strong style="color: ${accuracy > 80 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
+                </div>
+                <div style="margin-bottom: 10px; font-size: 13px; color: #858585;">
+                    <span style="display:inline-block; width:12px; height:12px; background:rgba(241,76,76,0.4); margin-right:5px; vertical-align:middle;"></span>表示冗余输入
+                    <span style="display:inline-block; width:12px; height:12px; background:rgba(35,209,96,0.4); margin-right:5px; margin-left: 15px; vertical-align:middle;"></span>表示缺失字符
+                </div>
+                <div class="diff-view">${diffHTML}</div>
+                <button style="margin-top: 20px; background: #0e639c;" onclick="resetView()">← 返回题目描述</button>
+            `;
+        }
+
+        function resetView() {
+            document.getElementById('problem-content').innerHTML = originalProblemHTML;
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
