@@ -83,9 +83,23 @@
             });
         });
 
+        /**
+ * 将格式化代码转换为适用于 JSON Value 的字符串
+ * @param {string} code - 原始格式化代码
+ * @returns {string} - 经过转义处理的字符串
+ */
+function formatCodeForJson(code) {
+    // 使用 JSON.stringify 处理转义逻辑
+    // 该方法会自动将换行符转为 \n，并处理引号等特殊字符
+    const jsonEscaped = JSON.stringify(code);
+    
+    // 如果只需要获取 JSON 内部的值（去掉首尾的双引号），可以进行切片
+    return jsonEscaped.substring(1, jsonEscaped.length - 1);
+}
+
         function submitCode() {
             const userCode = window.editor.getValue();
-            const expected = config.expectedCode;
+            const expected = formatCodeForJson(config.expectedCode);
             const diff = Diff.diffChars(expected, userCode);
 
             let diffHTML = '';
