@@ -61,5 +61,9 @@ window.OJTools = {
             }
         };
         reader.readAsText(file);
+    },
+
+    clearAllRecords: function() {
+        localStorage.removeItem(STORAGE_KEY);
     }
 };
