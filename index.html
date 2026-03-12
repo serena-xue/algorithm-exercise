@@ -88,10 +88,10 @@
         }
 
         /* Diff 视图高度保真样式 */
-        .diff-view {
+.diff-view {
             font-family: Consolas, "Courier New", monospace;
-            white-space: pre; /* 使用 pre 严格保留换行和空格 */
-            overflow-x: auto;
+            white-space: pre-wrap; /* 关键属性：保留空白符并允许自动换行 */
+            word-break: break-all;
             font-size: 14px;
             line-height: 1.5;
             background: #000;
@@ -186,69 +186,48 @@
             });
         });
 
-        function submitCode() {
+function submitCode() {
             const userCode = window.editor.getValue();
             const expected = config.expectedCode;
 
-            const strippedExpected = expected.replace(/\s+/g, '');
-            const strippedUser = userCode.replace(/\s+/g, '');
-
-            const diff = Diff.diffChars(strippedExpected, strippedUser);
+            // 严格匹配模式：不对空白字符做任何预处理
+            const diff = Diff.diffChars(expected, userCode);
 
             let diffHTML = '';
             let matchCount = 0;
-            let expectedPtr = 0; // 同步原格式字符串的指针
 
-            // 双指针还原逻辑：映射 diff 结果与原始标准答案的词法结构
+            // 直接遍历 Edit Script 进行渲染
             diff.forEach((part) => {
                 if (part.added) {
+                    // 用户多余的输入（包括多余的空格或换行）
                     diffHTML += `<span class="diff-added">${escapeHTML(part.value)}</span>`;
+                } else if (part.removed) {
+                    // 用户缺失的输入（包括缺失的空格或换行）
+                    diffHTML += `<span class="diff-removed">${escapeHTML(part.value)}</span>`;
                 } else {
-                    let chunkStr = '';
-                    let charsConsumed = 0;
-                    
-                    // 当匹配或缺失时，从原始 expected 字符串中提取包含格式的子串
-                    while (charsConsumed < part.value.length && expectedPtr < expected.length) {
-                        const char = expected[expectedPtr];
-                        chunkStr += char;
-                        if (!/\s/.test(char)) {
-                            charsConsumed++;
-                        }
-                        expectedPtr++;
-                    }
-                    
-                    if (part.removed) {
-                        diffHTML += `<span class="diff-removed">${escapeHTML(chunkStr)}</span>`;
-                    } else {
-                        diffHTML += `<span class="diff-match">${escapeHTML(chunkStr)}</span>`;
-                        matchCount += part.value.length;
-                    }
+                    // 完全匹配的片段
+                    diffHTML += `<span class="diff-match">${escapeHTML(part.value)}</span>`;
+                    matchCount += part.value.length;
                 }
             });
 
-            // 捕获尾随空白符
-            let trailing = '';
-            while (expectedPtr < expected.length && /\s/.test(expected[expectedPtr])) {
-                trailing += expected[expectedPtr];
-                expectedPtr++;
-            }
-            if (trailing) diffHTML += `<span>${escapeHTML(trailing)}</span>`;
+            // 严格模式下的正确率计算：分母为标准答案的总字符数（含空白符）
+            const accuracy = ((matchCount / expected.length) * 100).toFixed(2);
 
-            const accuracy = ((matchCount / strippedExpected.length) * 100).toFixed(2);
-
+            // 更新 DOM 渲染
             document.getElementById('problem-content').innerHTML = `
                 <div class="metric">
-                    代码结构拟合率: <strong style="color: ${accuracy >= 80 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
+                    严格匹配正确率: <strong style="color: ${accuracy >= 100 ? '#2da44e' : '#f14c4c'}">${accuracy}%</strong>
                 </div>
                 <div style="margin-bottom: 10px; font-size: 13px; color: #858585;">
-                    <span style="display:inline-block; width:12px; height:12px; background:rgba(241,76,76,0.4); margin-right:5px; vertical-align:middle;"></span>冗余输入
-                    <span style="display:inline-block; width:12px; height:12px; background:rgba(35,209,96,0.4); margin-right:5px; margin-left: 15px; vertical-align:middle;"></span>缺失结构
+                    <span style="display:inline-block; width:12px; height:12px; background:rgba(241,76,76,0.4); margin-right:5px; vertical-align:middle;"></span>冗余字符/格式
+                    <span style="display:inline-block; width:12px; height:12px; background:rgba(35,209,96,0.4); margin-right:5px; margin-left: 15px; vertical-align:middle;"></span>缺失字符/格式
                 </div>
                 <div class="diff-view">${diffHTML}</div>
                 <button style="margin-top: 20px; background: #0e639c;" onclick="resetView()">← 返回题目</button>
             `;
         }
-
+        
         function resetView() {
             document.getElementById('problem-content').innerHTML = originalProblemHTML;
         }
